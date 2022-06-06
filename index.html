@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Erstelle dein Meme</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>MemeGen - The Meme Generator</h1>
+    </div>
+
+    <div class="inputForms">
+        <div class="inputDuo">
+            <label for="link">
+                Bild URL:
+            </label>
+            <input id="link" type="url"
+                   pattern="((http(s?):)([/|.|\w|\s|-])*\.(?:jpg|gif|png))|(data:[\w]+\/[\w]+(;charset=[\w])?;[\w]+,.+)"
+                   onkeyup="EnableDisable()"
+                   required>
+        </div>
+
+        <p style="text-align: center">
+            oder
+        </p>
+
+        <div class="inputFile">
+            <input id="fileUpload" accept="image/*" onchange="EnableDisable()" type="file"/>
+            <label for="fileUpload" class="fileUpload">Bild hochladen</label>
+        </div>
+        <div class="buttonGrp">
+            <button id="delete" type="button" disabled onclick="deleteImg()">Bild löschen</button>
+            <button id="submit" type="button" disabled onclick="renderImg()">Bild renderen</button>
+        </div>
+    </div>
+
+    <div class="meme">
+        <div id="renderContainer" class="renderContainer">
+        </div>
+
+        <div class="textInputs">
+            <div class="inputDuo">
+                <label for="name">
+                    Name des Memes:
+                </label>
+                <input id="name" type="text">
+            </div>
+
+            <div class="inputDuo">
+                <label for="text1">
+                    Oberer Text:
+                </label>
+                <input id="text1" type="text">
+            </div>
+
+            <div class="inputDuo">
+                <label for="text2">
+                    Unterer Text:
+                </label>
+                <input id="text2" type="text">
+            </div>
+        </div>
+        <div class="saveButtons">
+            <button>Herunterladen</button>
+            <button>In die Datenbank speichern</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function EnableDisable() {
+        //Reference the Button.
+        let btnSubmit = document.getElementById("submit");
+        let url = document.getElementById('link');
+        let deleteBtn = document.getElementById("delete");
+        let fileUpload = document.getElementById('fileUpload');
+        btnSubmit.disabled = !url.checkValidity() && fileUpload.files.length === 0;
+        url.disabled = fileUpload.files.length !== 0;
+        deleteBtn.disabled = fileUpload.files.length === 0 && document.getElementById('renderImg') === null
+        fileUpload.disabled = url.value.trim() !== "";
+    }
+
+    async function renderImg() {
+        let imgURL = document.getElementById("link").value;
+        let imgUrlFromFile = document.getElementById("fileUpload").files[0];
+        let renderContainer = document.getElementById('renderContainer');
+        let imgTag = document.createElement('img');
+        imgTag.id = 'renderImg';
+
+        if (renderContainer.childElementCount > 0) {
+            renderContainer.replaceChildren();
+        }
+        if (imgURL === "") {
+            let imgSrc = await toBase64(imgUrlFromFile);
+            imgTag.setAttribute('src', imgSrc);
+            imgTag.setAttribute('alt', 'Image from File');
+        } else {
+            imgTag.setAttribute('src', imgURL);
+            imgTag.setAttribute('alt', 'Image from URL');
+        }
+
+        renderContainer.appendChild(imgTag);
+        EnableDisable();
+    }
+
+    const toBase64 = file => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
+
+    function deleteImg() {
+        let renderContainer = document.getElementById('renderContainer');
+        let inputFiles = document.getElementById('fileUpload')
+        let url = document.getElementById('link');
+        url.value = "";
+        renderContainer.replaceChildren();
+        inputFiles.value = "";
+        EnableDisable();
+    }
+</script>
+</body>
+</html>
