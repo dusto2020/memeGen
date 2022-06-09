@@ -28,8 +28,7 @@ html, body {
 .inputForms, .textInputs {
     display: flex;
     flex-direction: column;
-    align-content: stretch;
-
+    justify-content: space-evenly;
 }
 
 
@@ -64,16 +63,32 @@ input:disabled {
     justify-content: space-evenly;
 }
 
+.meme {
+    width: 400px;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+}
+
+#renderCanvas {
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -o-crisp-edges;
+    image-rendering: pixelated;
+    -ms-interpolation-mode: nearest-neighbor;
+}
+
 .renderContainer {
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 400px;
-    height: 400px;
-    border: #9ade60 2px solid;
+    align-self: center;
+    width: fit-content;
+    height: fit-content;
+    max-width: 400px;
+    max-height: 400px;
 }
 
-.renderContainer > img {
+.renderContainer > canvas {
     object-fit: cover;
     max-width: 100%;
     max-height: 100%;
@@ -143,4 +158,8 @@ input:disabled {
     background-color: #99c793;
     border-radius: 50px;
     overflow: hidden;
+}
+
+#downloadLink {
+    all: unset;
 }

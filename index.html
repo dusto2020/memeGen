@@ -17,7 +17,7 @@
     <div class="inputForms">
         <div class="inputDuo">
             <label for="link">
-                Bild URL:
+                Bild URL/Adresse:
             </label>
             <input id="link" type="url"
                    pattern="((http(s?):)([/|.|\w|\s|-])*\.(?:jpg|gif|png))|(data:[\w]+\/[\w]+(;charset=[\w])?;[\w]+,.+)"
@@ -39,7 +39,7 @@
         </div>
     </div>
 
-    <div class="meme">
+    <div id="memeContainer" class="meme">
         <div id="renderContainer" class="renderContainer">
         </div>
 
@@ -52,21 +52,25 @@
             </div>
 
             <div class="inputDuo">
-                <label for="text1">
+                <label for="textOben">
                     Oberer Text:
                 </label>
-                <input id="text1" type="text">
+                <input id="textOben" type="text" onkeyup="renderImg(true)">
             </div>
 
             <div class="inputDuo">
-                <label for="text2">
+                <label for="textUnten">
                     Unterer Text:
                 </label>
-                <input id="text2" type="text">
+                <input id="textUnten" type="text" onkeyup="renderImg(true)">
             </div>
         </div>
         <div class="saveButtons">
-            <button>Herunterladen</button>
+            <button>
+                <a id="downloadLink" download>
+                    Herunterladen
+                </a>
+            </button>
             <button>In die Datenbank speichern</button>
         </div>
     </div>
@@ -74,56 +78,114 @@
 </div>
 
 <script>
+
     function EnableDisable() {
-        //Reference the Button.
         let btnSubmit = document.getElementById("submit");
         let url = document.getElementById('link');
         let deleteBtn = document.getElementById("delete");
         let fileUpload = document.getElementById('fileUpload');
-        btnSubmit.disabled = !url.checkValidity() && fileUpload.files.length === 0;
+        let meme = document.getElementById('memeContainer');
         url.disabled = fileUpload.files.length !== 0;
-        deleteBtn.disabled = fileUpload.files.length === 0 && document.getElementById('renderImg') === null
         fileUpload.disabled = url.value.trim() !== "";
+        deleteBtn.disabled = fileUpload.files.length === 0 && document.getElementById('renderCanvas') === null
+        btnSubmit.disabled = !url.checkValidity() && fileUpload.files.length === 0;
+        meme.style.display = document.getElementById('renderCanvas') ? 'flex' : 'none';
     }
 
-    async function renderImg() {
+
+    function renderImg(write = false) {
         let imgURL = document.getElementById("link").value;
         let imgUrlFromFile = document.getElementById("fileUpload").files[0];
         let renderContainer = document.getElementById('renderContainer');
-        let imgTag = document.createElement('img');
-        imgTag.id = 'renderImg';
+        let canvas = document.createElement('canvas');
+        let ctx = canvas.getContext('2d');
+        canvas.id = 'renderCanvas'
+        canvas.width = 400 * devicePixelRatio;
+        canvas.height = 400 * devicePixelRatio;
+        canvas.style.maxWidth = '400px'
+        canvas.style.maxHeight = '400px'
 
         if (renderContainer.childElementCount > 0) {
             renderContainer.replaceChildren();
         }
-        if (imgURL === "") {
-            let imgSrc = await toBase64(imgUrlFromFile);
-            imgTag.setAttribute('src', imgSrc);
-            imgTag.setAttribute('alt', 'Image from File');
-        } else {
-            imgTag.setAttribute('src', imgURL);
-            imgTag.setAttribute('alt', 'Image from URL');
-        }
 
-        renderContainer.appendChild(imgTag);
-        EnableDisable();
+        if (imgURL === "") {
+            let reader = new FileReader();
+            reader.readAsDataURL(imgUrlFromFile);
+            reader.onload = (e) => {
+                canvas = drawCanvas(e.target.result, canvas, ctx, write)
+                ctx = canvas.getContext('2d')
+                renderContainer.appendChild(canvas)
+                EnableDisable();
+            }
+        } else {
+            canvas = drawCanvas(imgURL, canvas, ctx)
+            ctx = canvas.getContext('2d')
+            renderContainer.appendChild(canvas)
+            EnableDisable();
+        }
     }
 
-    const toBase64 = file => new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
-    });
+    function drawCanvas(source, canvas, ctx, write = false) {
+        let canvasImg = new Image();
+        canvasImg.onload = () => {
+            if (canvasImg.height >= canvasImg.width) {
+                let height = 400 * devicePixelRatio;
+                let width = canvasImg.width * (400 / canvasImg.height) * devicePixelRatio
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(canvasImg, (canvas.width / 2) - (width / 2), (canvas.height / 2) - (height / 2), width, height)
+                if (write) {
+                    writeOnCanvas(canvas, ctx)
+                }
+            } else {
+                let height = canvasImg.height * (400 / canvasImg.width) * devicePixelRatio
+                let width = 400 * devicePixelRatio;
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(canvasImg, (canvas.width / 2) - (width / 2), (canvas.height / 2) - (height / 2), width, height)
+                if (write) {
+                    writeOnCanvas(canvas, ctx)
+                }
+            }
+        }
+        canvasImg.src = source;
+        return canvas;
+    }
+
+    function writeOnCanvas(canvas, ctx) {
+        let textOben = document.getElementById('textOben').value.trim()
+        let textUnten = document.getElementById('textUnten').value.trim()
+        ctx.textAlign = 'center'
+        ctx.font = '30pt Arial'
+        ctx.fillStyle = '#fff';
+        ctx.fillText(textOben, canvas.width / 2, canvas.height * 0.1)
+        ctx.fillText(textUnten, canvas.width / 2, canvas.height * 0.9)
+        createDownloadLink();
+    }
+
+    function createDownloadLink() {
+        let canvas = document.getElementById('renderCanvas')
+        let link = document.getElementById('downloadLink')
+        let memeName = document.getElementById('name').value.trim()
+        link.href = canvas.toDataURL();
+        link.download = memeName !== "" ? memeName : "MyAwesomeMeme";
+    }
 
     function deleteImg() {
         let renderContainer = document.getElementById('renderContainer');
         let inputFiles = document.getElementById('fileUpload')
         let url = document.getElementById('link');
+        let memeName = document.getElementById('name');
+        let textOben = document.getElementById('textOben');
+        let textUnten = document.getElementById('textUnten');
         url.value = "";
-        renderContainer.replaceChildren();
         inputFiles.value = "";
-        EnableDisable();
+        memeName.value = "";
+        textOben.value = "";
+        textUnten.value = "";
+        renderContainer.replaceChildren();
+        EnableDisable()
     }
 </script>
 </body>
